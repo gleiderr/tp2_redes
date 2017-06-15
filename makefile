@@ -1,13 +1,16 @@
 all: server sender viewer
 
-server: cabecalho.h server.c
-	gcc -o server server.c
+server: mensagem.o server.c
+	gcc -o server server.c mensagem.o
 
-sender: cabecalho.h sender.c
-	gcc -o sender sender.c
+sender: mensagem.o sender.c
+	gcc -o sender sender.c mensagem.o
 
-viewer: cabecalho.h viewer.c
-	gcc -o viewer viewer.c
+viewer: mensagem.o viewer.c
+	gcc -o viewer viewer.c mensagem.o
+
+mensagem.o: mensagem.h mensagem.c
+	gcc -o mensagem.o -c mensagem.c
 
 clean:
 	rm -rf *.o

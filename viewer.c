@@ -8,16 +8,17 @@
 #include <netdb.h>
 #include <errno.h>
 
-#include "cabecalho.h"
-
-int openSocket(char const* addr);
+#include "mensagem.h"
 
 int main(int argc, char const *argv[]) {   
     uint16_t myId;
     uint16_t sequ = 0;
     int s;
 
-    //Enviar mensagem de OI para servidor:
+    if(!(s = openClient(argv[1])))
+        exit(-1);
+
+    puts("Viewer: conectado");
     
     close(s);
     exit(0);
