@@ -1,7 +1,18 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 #include <sys/select.h>
+#include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <errno.h>
+#include <math.h>
 
 #include "cabecalho.h"
+
+#define MAX_PENDING 1
 
 #define FRST_SENDER 1
 #define LAST_SENDER (pow(2, 12) - 1)
@@ -9,7 +20,7 @@
 #define LAST_VIEWER (pow(2, 13) - 1)
 
 int openSocket(char const* addr) {
-    int s;
+    int s, other_s;
     int server_port;
     struct sockaddr_in sin;
 
@@ -19,8 +30,12 @@ int openSocket(char const* addr) {
     }
 
     server_port = atoi(addr); //Lendo e convertendo a porta do servidor
+    bzero((char*) &sin, sizeof(sin));
+    sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = INADDR_ANY;
     sin.sin_port = htons(server_port);
+
+    //printf("server_port %d, addr %s\n", server_port, addr);
 
     if(bind(s, (struct sockaddr*) &sin, sizeof(sin)) < 0) {
         perror("error: bind");
@@ -28,12 +43,7 @@ int openSocket(char const* addr) {
         return 0;
     }
     listen(s, MAX_PENDING);
-    if(bind(s, (struct sockaddr*) &sin, sizeof(sin)) < 0) {
-        perror("error: bind");
-        close(s);
-        return 0;
-    }
-    int other_s;
+    
     int len = sizeof(sin);
     if((other_s = accept(s, (struct sockaddr*) &sin, (socklen_t*) &len)) < 0) {
         perror("error: accept");
@@ -55,5 +65,8 @@ int main(int argc, char const *argv[]) {
     if(!(s = openSocket(argv[1])))
         exit(-1);
 
+    puts("Server: conectado");
+
+    close(s);
     exit(0);
 }

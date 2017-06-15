@@ -1,6 +1,8 @@
 #ifndef CABECALHO_H
 #define CABECALHO_H
 
+#include <sys/types.h>
+
 #define OK 1
 #define ERRO 2
 #define OI 3
