@@ -22,6 +22,8 @@
 //Estruturas de dados de clientes
 typedef struct {
     int s;
+    int id;
+    int viewer;
 } Client;
 #define MAX_CLIENTS 256;
 int nClients = 0;
@@ -75,34 +77,80 @@ void newClient(struct sockaddr_in* sin) {
     nClients++;
 }
 
+void resetFDS(fd_set* fds) {
+    int nfds = passive_s + 1;
+
+    FD_ZERO(fds);
+    FD_SET(passive_s, fds);
+    for(i = 0; i < nClients; i++){
+        FD_SET(clients[i].s, fds);
+        if(clients[i].s >= nfds)
+            nfds = clients[i].s + 1;
+    }
+
+    return nfds;
+}
+
+uint16_t nextSender = FRST_SENDER;
+uint16_t nextViewer = FRST_VIEWER;
+void processData(Client* client) {
+    Mensagem* msg;
+    char buff[sizeof(Mensagem)];
+    int rtn = 0, r;
+
+    //Garante recebimento completo do cabeçalho
+    while(rtn < 8) {
+        if((r = recv(client->s, &buff[rtn], sizeof(Mensagem), 0)) < 0)
+            perror("error: recv");
+        rtn += r;
+    }
+    msg = (Mensagem*) buff;
+
+    switch(msg.type) {
+        case OK:
+            break;
+        case ERRO:
+            break;
+        case OI:
+            if(msg.orig == 0) { //Exibidor
+                client->id = nextViewer++;
+                client->viewer = 0;
+            } else if(msg.orig >= FRST_VIEWER || msg.orig <= LAST_VIEWER) { //Emissor
+                client->id = nextSender++;
+                client->viewer = msg.orig;
+            } else {
+                client->id = nextSender++;
+                client->viewer = 0;
+            }
+            sendMSG(client->s, OK, SERVER_ID, client->id, 0);
+            break;
+        case FLW:
+            break;
+        case MSG:
+            break;
+        case CREQ:
+            break;
+        case CLIST:
+            break;
+        default:
+            fprintf(stderr, "error: msg.type(%d) inválido\n", msg.type);
+    }
+}
+
 int main(int argc, char const *argv[]) {
     int i;
     struct sockaddr_in sin;
-    uint16_t myId = SERVER_ID;
-    uint16_t nextSender = FRST_SENDER;
-    uint16_t nextViewer = FRST_VIEWER;
     uint16_t sequ = 0;
 
     fd_set rfds;
-    int nfds;
 
     if(!openSocket(argv[1], &sin))
         exit(-1);
 
     int run = 1;
     while(run) {
-        //Reiniciando rfds e nfds
-        FD_ZERO(&rfds);
-        FD_SET(passive_s, &rfds);
-        nfds = passive_s + 1;
-        for(i = 0; i < nClients; i++){
-            FD_SET(clients[i].s, &rfds);
-            if(clients[i].s >= nfds)
-                nfds = clients[i].s + 1;
-        }
-        
         //Selecionando descritor de arquivo pronto para ser lido
-        int n;
+        int n, nfds = resetFDS(&rfds);
         if(n = select(nfds, &rfds, NULL, NULL, NULL) < 0) {
             perror("error: select");
         } else {
@@ -114,8 +162,9 @@ int main(int argc, char const *argv[]) {
             }
 
             //Para cada descritor pronto, receber seus dados
-            for(i = 0; i < n; i++) {
-
+            for(i = 0, j = 0; i < n; i++) {
+                while(!FD_ISSET(clients[j].s, &rfds)) j++; //Seleciona cliente entregando mensagem
+                processData(&clients[j]);
             }
         }
     }

@@ -10,14 +10,6 @@
 
 #include "mensagem.h"
 
-sendOI(int s, int sequ) {
-    Mensagem m;
-    m.type = OI;
-    m.orig = 0;
-    m.dest = SERVER_ID;
-    m.sequ = sequ;
-}
-
 int main(int argc, char const *argv[]) {   
     uint16_t myId;
     uint16_t sequ = 0;
@@ -27,7 +19,7 @@ int main(int argc, char const *argv[]) {
         exit(-1);
 
     puts("Viewer: conectado");
-    sendOI(s, ++sequ);
+    sendMSG(s, OI, 0, SERVER_ID, ++sequ);
     
     close(s);
     exit(0);

@@ -52,18 +52,14 @@ int openClient(char const* addr) {
     return s;
 }
 
-/* Se id == 0, exibidor
- * Se pow(2, 12) <= id <= pow(2, 13) - 1, emissor
- */
-void sendOI(int s, uint16_t id, uint16_t sequ) {
+void sendMSG(int s, uint16_t type, uint16_t orig, uint16_t dest, uint16_t sequ) {
     Mensagem m;
-    m.type = OI;
-    m.orig = id;
-    m.dest = SERVER_ID;
+    m.type = type;
+    m.orig = orig;
+    m.dest = dest;
     m.sequ = sequ;
-
     if(send(s, &m, sizeof(Mensagem), 0) < 0){
-        perror("error: sendOI");
+        perror("error: sendMSG");
         close(s);
         exit(1);
     }
