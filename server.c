@@ -89,27 +89,35 @@ int main(int argc, char const *argv[]) {
     if(!openSocket(argv[1], &sin))
         exit(-1);
 
-    //Reiniciando rfds e nfds
-    FD_ZERO(&rfds);
-    FD_SET(passive_s, &rfds);
-    nfds = passive_s + 1;
-    for(i = 0; i < nClients; i++){
-        FD_SET(clients[i].s, &rfds);
-        if(clients[i].s >= nfds)
-            nfds = clients[i].s + 1;
-    }
-
-    //Selecionando descritor de arquivo pronto para ser lido
-    if(select(nfds, &rfds, NULL, NULL, NULL) < 0) {
-        perror("error: select");
-    } else {
-        //Nova conexão à vista
-        if(FD_ISSET(passive_s, &rfds)){
-            newClient(&sin);
-            puts("Server: conectado");
+    int run = 1;
+    while(run) {
+        //Reiniciando rfds e nfds
+        FD_ZERO(&rfds);
+        FD_SET(passive_s, &rfds);
+        nfds = passive_s + 1;
+        for(i = 0; i < nClients; i++){
+            FD_SET(clients[i].s, &rfds);
+            if(clients[i].s >= nfds)
+                nfds = clients[i].s + 1;
         }
+        
+        //Selecionando descritor de arquivo pronto para ser lido
+        int n;
+        if(n = select(nfds, &rfds, NULL, NULL, NULL) < 0) {
+            perror("error: select");
+        } else {
+            //Nova conexão à vista
+            if(FD_ISSET(passive_s, &rfds)){
+                n--;
+                newClient(&sin);
+                puts("Server: conectado");
+            }
 
-        //Para cada descritor pronto, receber seus dados
+            //Para cada descritor pronto, receber seus dados
+            for(i = 0; i < n; i++) {
+
+            }
+        }
     }
 
     //Fechando sockets
