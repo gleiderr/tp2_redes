@@ -56,13 +56,13 @@ int openClient(char const* addr) {
  * Se pow(2, 12) <= id <= pow(2, 13) - 1, emissor
  */
 void sendOI(int s, uint16_t id, uint16_t sequ) {
-    Cabecalho c;
-    c.type = OI;
-    c.orig = id;
-    c.dest = SERVER_ID;
-    c.sequ = sequ;
+    Mensagem m;
+    m.type = OI;
+    m.orig = id;
+    m.dest = SERVER_ID;
+    m.sequ = sequ;
 
-    if(send(s, &c, sizeof(Cabecalho), 0) < 0){
+    if(send(s, &m, sizeof(Mensagem), 0) < 0){
         perror("error: sendOI");
         close(s);
         exit(1);
