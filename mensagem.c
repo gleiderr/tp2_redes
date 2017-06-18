@@ -44,3 +44,11 @@ void recvData(int s, char* buff) {
 
     //printf("recvData_out()\n");
 }
+
+void wait(uint16_t type, uint16_t orig, uint16_t dest, uint16_t sequ) {
+    while(1) {
+        recvData(s, (char*) &msg);
+        if(msg.type == type && msg.orig == orig && msg.dest == dest && msg.sequ == sequ)
+            return;
+    }
+}
