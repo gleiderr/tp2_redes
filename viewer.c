@@ -32,6 +32,7 @@ int main(int argc, char const *argv[]) {
     while(run) {
         recvData(s, (char*) &msg);
         if(msg.dest == myId) {
+            printf("Mensage from %d: ", msg.orig);
             switch(msg.type) {
                 case FLW:
                     sendMSG(s, OK, myId, msg.orig, msg.sequ, 0, NULL);
