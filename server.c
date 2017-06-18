@@ -21,33 +21,31 @@
 
 //Estruturas de dados de clientes
 typedef struct {
-    int s;
     int id;
     int viewer;
 } Client;
-#define MAX_CLIENTS 256;
 int nClients = 0;
-Client clients[256];
+Client clients[FD_SETSIZE]; //idx = socket do cliente
 
 int passive_s; //Descritor para novas conexões
 
 /* Função para atribuição de novos clientes */
-void newClient(struct sockaddr_in* sin) {
-    if(nClients == 256) {
-        fprintf(stderr, "error: Máximo de clients atingido\n");
-        return;
+int newClient(struct sockaddr_in* sin) {
+    if(nClients == FD_SETSIZE) {
+        fprintf(stderr, "error: Máximo de clients atingido: %d\n", FD_SETSIZE);
+        return -1;
     }
 
-    int len = sizeof(struct sockaddr_in);
     int new_s;
+    int len = sizeof(struct sockaddr_in);
     if((new_s = accept(passive_s, (struct sockaddr*) sin, (socklen_t*) &len)) < 0) {
         perror("error: accept");
         close(passive_s);
         exit(-1);
     }
 
-    clients[nClients].s = new_s;
     nClients++;
+    return new_s;
 }
 
 int openSocket(char const* addr, struct sockaddr_in* sin) {
@@ -75,35 +73,17 @@ int openSocket(char const* addr, struct sockaddr_in* sin) {
         return 0;   
     }
 
-    newClient(sin);
-    puts("Server: conectado");
-
     return 1;
-}
-
-int resetFDS(fd_set* fds) {
-    int i;
-    int nfds = passive_s + 1;
-
-    FD_ZERO(fds);
-    FD_SET(passive_s, fds);
-    for(i = 0; i < nClients; i++){
-        FD_SET(clients[i].s, fds);
-        if(clients[i].s >= nfds)
-            nfds = clients[i].s + 1;
-    }
-
-    return nfds;
 }
 
 uint16_t nextSender = FRST_SENDER;
 uint16_t nextViewer = FRST_VIEWER;
-void processData(Client* client) {
+void processData(int s) {
     puts("processData()");
     Mensagem msg;
     int rtn = 0, r;
 
-    recvData(client->s, (char*) &msg);
+    recvData(s, (char*) &msg);
     switch(msg.type) {
         case OK:
             break;
@@ -111,16 +91,16 @@ void processData(Client* client) {
             break;
         case OI:
             if(msg.orig == 0) { //Exibidor
-                client->id = nextViewer++;
-                client->viewer = 0;
-            } else if(msg.orig >= FRST_VIEWER || msg.orig <= LAST_VIEWER) { //Emissor
-                client->id = nextSender++;
-                client->viewer = msg.orig;
-            } else {
-                client->id = nextSender++;
-                client->viewer = 0;
+                clients[s].id = nextViewer++;
+                clients[s].viewer = 0;
+            } else if(msg.orig >= FRST_VIEWER || msg.orig <= LAST_VIEWER) { //Emissor com viewer
+                clients[s].id = nextSender++;
+                clients[s].viewer = msg.orig;
+            } else { //Emissor sem viewer
+                clients[s].id = nextSender++;
+                clients[s].viewer = 0;
             }
-            sendMSG(client->s, OK, SERVER_ID, client->id, 0, 0, NULL);
+            sendMSG(s, OK, SERVER_ID, clients[s].id, 0, 0, NULL);
             break;
         case FLW:
             break;
@@ -136,55 +116,42 @@ void processData(Client* client) {
 }
 
 int main(int argc, char const *argv[]) {
-    int i, j;
+    int s, j;
     struct sockaddr_in sin;
     uint16_t sequ = 0;
 
-    int nfds, n;
     fd_set rfds, rfds_bkp;
 
     if(!openSocket(argv[1], &sin))
         exit(-1);
 
-    processData(&clients[0]);
+    //processData(&clients[0]);
+    FD_ZERO(&rfds_bkp);
+    FD_SET(passive_s, &rfds_bkp);
 
-    /*int run = 1;
+    int run = 1;
     while(run) {
-        nfds = passive_s + 1;
-        FD_ZERO(&rfds);
-        FD_SET(passive_s, &rfds);
-        for(i = 0; i < nClients; i++){
-            printf("clients[i].s(%d)\n", clients[i].s);
-            FD_SET(clients[i].s, &rfds);
-            if(clients[i].s >= nfds)
-                nfds = clients[i].s + 1;
-        }
+        rfds = rfds_bkp;
+
         //Selecionando descritor de arquivo pronto para ser lido
-        //int n, nfds = resetFDS(&rfds);
-        puts("select_in()");
-        if(n = select(FD_SETSIZE, &rfds, NULL, NULL, NULL) < 0) {
+        if(select(FD_SETSIZE, &rfds, NULL, NULL, NULL) < 0) {
             perror("error: select");
             exit(-1);
         } else {
-            printf("select_out(); n=%d;\n", n);
-            //Nova conexão à vista
-            if(FD_ISSET(passive_s, &rfds)){
-                n--;
-                newClient(&sin);
-            }
-
-            //Para cada descritor pronto, receber seus dados
-
-            for(i = 0, j = 0; i < n; i++) {
-                while(!FD_ISSET(clients[j].s, &rfds)) j++; //Seleciona cliente entregando mensagem
-                processData(&clients[j]);
+            for(s = 0; s < FD_SETSIZE; s++) { //Testa todos possíveis sockets remetentes
+                if(FD_ISSET(s, &rfds)) {
+                    if(s == passive_s) //Novo cliente
+                        FD_SET(newClient(&sin), &rfds_bkp);
+                    else //Dados chegando
+                        processData(s);
+                }
             }
         }
-    }*/
+    }
 
-    //Fechando sockets
-    for(i = 0; i < nClients; i++)
-        close(clients[i].s);
-    close(passive_s);
+    //Fechando sockets ainda abertos
+    for(s = 0; s < FD_SETSIZE; s++)
+        if(FD_ISSET(s, &rfds_bkp))
+            close(s);
     exit(0);
 }
