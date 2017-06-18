@@ -100,7 +100,7 @@ void processData(int s) {
                 clients[s].id = nextSender++;
                 clients[s].viewer = 0;
             }
-            sendMSG(s, OK, SERVER_ID, clients[s].id, 0, 0, NULL);
+            sendMSG(s, OK, SERVER_ID, clients[s].id, msg.sequ, 0, NULL);
             break;
         case FLW:
             break;
