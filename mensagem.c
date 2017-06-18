@@ -10,48 +10,6 @@
 
 #include "mensagem.h"
 
-int openClient(char const* addr) {
-    int i, s;
-    int server_port;
-    struct hostent *hp;
-    struct sockaddr_in sin;
-
-    bzero((char*) &sin, sizeof(sin));
-    sin.sin_family = AF_INET;
-
-    //Abertura do socket
-    if ((s = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
-        perror("error: socket");
-        return 0;
-    }
-
-    //Recuperando endereço do servidor
-    char host[15+1]; //000.000.000.000\0
-    for(i = 0; addr[i] != ':'; i++)
-        host[i] = addr[i];
-    host[i] = '\0';
-    server_port = atoi(&addr[i+1]); //Lendo e convertendo a porta do servidor
-
-    if(!(hp = gethostbyname(host))) {
-        perror("error: gethostbyname");
-        fprintf(stderr, "Host: %s\n", host);
-        close(s);
-        return 0;
-    }
-
-    bcopy(hp->h_addr, (char*) &sin.sin_addr, hp->h_length);
-    sin.sin_port = htons(server_port);
-
-    int len = sizeof(sin);
-    if(connect(s, (struct sockaddr *) &sin, len) < 0) {
-        perror("error: connect");
-        close(s);
-        return 0;
-    }
-
-    return s;
-}
-
 void sendMSG(int s, uint16_t type, uint16_t orig, uint16_t dest, uint16_t sequ, uint16_t length, char* msg) {
     //printf("sendMSG(s(%d), type(%d), orig(%d), dest(%d), sequ(%d), length(%d))\n", s, type, orig, dest, sequ, length);
     Mensagem m;
@@ -64,6 +22,7 @@ void sendMSG(int s, uint16_t type, uint16_t orig, uint16_t dest, uint16_t sequ, 
     
     if(send(s, &m, 10 + m.length, 0) < 0){
         perror("error: sendMSG");
+
         close(s);
         exit(1);
     }

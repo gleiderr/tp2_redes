@@ -18,14 +18,13 @@
 #define FRST_VIEWER 4096
 #define LAST_VIEWER 8191
 
-
 //Estruturas de dados de clientes
 typedef struct {
     int id;
     int viewer;
 } Client;
 int nClients = 0;
-Client clients[FD_SETSIZE]; //idx = socket do cliente
+Client clients[FD_SETSIZE]; //índice = socket do cliente
 
 int passive_s; //Descritor para novas conexões
 

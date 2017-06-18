@@ -1,16 +1,19 @@
 all: server sender viewer
 
-server: mensagem.o server.c
-	gcc -o server server.c mensagem.o
+server: obj/mensagem.o server.c
+	gcc -o server server.c obj/mensagem.o
 
-sender: mensagem.o sender.c
-	gcc -o sender sender.c mensagem.o
+sender: obj/mensagem.o obj/clientConnection.o sender.c
+	gcc -o sender sender.c obj/mensagem.o obj/clientConnection.o
 
-viewer: mensagem.o viewer.c
-	gcc -o viewer viewer.c mensagem.o
+viewer: obj/mensagem.o obj/clientConnection.o viewer.c
+	gcc -o viewer viewer.c obj/mensagem.o obj/clientConnection.o
 
-mensagem.o: mensagem.h mensagem.c
-	gcc -o mensagem.o -c mensagem.c
+obj/mensagem.o: mensagem.h mensagem.c
+	gcc -o obj/mensagem.o -c mensagem.c
+
+obj/clientConnection.o: clientConnection.h clientConnection.c
+	gcc -o obj/clientConnection.o -c clientConnection.c
 
 clean:
 	rm -rf *.o

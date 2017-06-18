@@ -9,12 +9,16 @@
 #include <errno.h>
 
 #include "mensagem.h"
+#include "clientConnection.h"
 
 int main(int argc, char const *argv[]) {
     Mensagem msg;
     uint16_t myId;
+
     uint16_t sequ = 0;
     int s;
+
+    bool flagEND = FALSE;
 
     //Enviar mensagem de OI para servidor:
     if(!(s = openClient(argv[1])))
@@ -28,6 +32,13 @@ int main(int argc, char const *argv[]) {
         myId = msg.dest;
         printf("Hello, I'm Sender %d.\n", myId);
     }
+
+  /** Só comentei porque na resolução de conflitos eu não entendi esse trecho :/
+	while(myId == 0)
+	{
+		waitforId();
+	}
+  */
 
     close(s);
     exit(0);

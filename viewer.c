@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include "mensagem.h"
+#include "clientConnection.h"
 
 int main(int argc, char const *argv[]) {
     Mensagem msg;
@@ -27,6 +28,12 @@ int main(int argc, char const *argv[]) {
         myId = msg.dest;
         printf("Hello, I'm Viewer %d.\n", myId);
     }
+  
+    /** Só comentei porque na resolução de conflitos eu não entendi esse trecho :/
+    while(myId == 0) {
+    	receive()
+    }
+    */
     
     close(s);
     exit(0);
