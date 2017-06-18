@@ -20,7 +20,6 @@ int main(int argc, char const *argv[]) {
     if(!(s = openClient(argv[1])))
         exit(-1);
 
-    //puts("Viewer: conectado");
     sendMSG(s, OI, 0, SERVER_ID, sequ++, 0, NULL);
     recvData(s, (char*) &msg);
     if(msg.type == OK) {
@@ -28,13 +27,24 @@ int main(int argc, char const *argv[]) {
         myId = msg.dest;
         printf("Hello, I'm Viewer %d.\n", myId);
     }
-  
-    /** Só comentei porque na resolução de conflitos eu não entendi esse trecho :/
-    while(myId == 0) {
-    	receive()
+
+    int run = 1;
+    while(run) {
+        recvData(s, (char*) &msg);
+        if(msg.dest == myId) {
+            printf("Mensage from %d: ", msg.orig);
+            switch(msg.type) {
+                case FLW:
+                    sendMSG(s, OK, myId, msg.orig, msg.sequ, 0, NULL);
+                    run = 0;
+                    break;
+                default:
+                    fprintf(stderr, "error: msg.type(%d) inesperado\n", msg.type);
+            }
+        } //else ignora
     }
-    */
     
     close(s);
+    printf("Viewer %d said goodbye!\n", myId);
     exit(0);
 }
