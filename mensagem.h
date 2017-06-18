@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <math.h>
 
-#define SERVER_ID (pow(2, 16) - 1);
+#define SERVER_ID 65535
 
 #define OK 1
 #define ERRO 2
@@ -15,14 +15,16 @@
 #define CLIST 7
 
 typedef struct {
-    uint16_t length;
-    char msg[UINT16_MAX];
     uint16_t type;
     uint16_t orig;
     uint16_t dest;
     uint16_t sequ;
+    uint16_t length;
+    char msg[];
 } Mensagem;
 
 //int openClient(char const* addr);
+void sendMSG(int s, uint16_t type, uint16_t orig, uint16_t dest, uint16_t sequ, uint16_t length, char* msg);
+void recvData(int s, char* buff);
 
 #endif

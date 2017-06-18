@@ -11,9 +11,10 @@
 #include "mensagem.h"
 #include "clientConnection.h"
 
-int main(int argc, char const *argv[]) 
-{
-    uint16_t myId = 0;
+int main(int argc, char const *argv[]) {
+    Mensagem msg;
+    uint16_t myId;
+
     uint16_t sequ = 0;
     int s;
 
@@ -22,15 +23,22 @@ int main(int argc, char const *argv[])
     //Enviar mensagem de OI para servidor:
     if(!(s = openClient(argv[1])))
         exit(-1);
-	puts("Sender: conectado");
 
-	/* Enviando OI para requisição.  */
-	void sendOI(s, sequ);
+    //puts("Sender: conectado");
+    sendMSG(s, OI, 1, SERVER_ID, sequ++, 0, NULL);
+    recvData(s, (char*) &msg);
+    if(msg.type == OK) {
+        //Comunicação estabelecida!
+        myId = msg.dest;
+        printf("Hello, I'm Sender %d.\n", myId);
+    }
 
+  /** Só comentei porque na resolução de conflitos eu não entendi esse trecho :/
 	while(myId == 0)
 	{
 		waitforId();
 	}
+  */
 
     close(s);
     exit(0);

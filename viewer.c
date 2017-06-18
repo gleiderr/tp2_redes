@@ -11,20 +11,29 @@
 #include "mensagem.h"
 #include "clientConnection.h"
 
-int main(int argc, char const *argv[]) 
-{   
+int main(int argc, char const *argv[]) {
+    Mensagem msg;
     uint16_t myId;
     uint16_t sequ = 0;
     int s;
 
     if(!(s = openClient(argv[1])))
         exit(-1);
-    puts("Viewer: conectado");
 
+    //puts("Viewer: conectado");
+    sendMSG(s, OI, 0, SERVER_ID, sequ++, 0, NULL);
+    recvData(s, (char*) &msg);
+    if(msg.type == OK) {
+        //Comunicação estabelecida!
+        myId = msg.dest;
+        printf("Hello, I'm Viewer %d.\n", myId);
+    }
+  
+    /** Só comentei porque na resolução de conflitos eu não entendi esse trecho :/
     while(myId == 0) {
     	receive()
-
     }
+    */
     
     close(s);
     exit(0);
