@@ -14,9 +14,9 @@
 #define MAX_PENDING 256
 
 #define FRST_SENDER 1
-#define LAST_SENDER (pow(2, 12) - 1)
-#define FRST_VIEWER (pow(2, 12))
-#define LAST_VIEWER (pow(2, 13) - 1)
+#define LAST_SENDER 4095
+#define FRST_VIEWER 4096
+#define LAST_VIEWER 8191
 
 
 //Estruturas de dados de clientes
@@ -30,6 +30,25 @@ int nClients = 0;
 Client clients[256];
 
 int passive_s; //Descritor para novas conexões
+
+/* Função para atribuição de novos clientes */
+void newClient(struct sockaddr_in* sin) {
+    if(nClients == 256) {
+        fprintf(stderr, "error: Máximo de clients atingido\n");
+        return;
+    }
+
+    int len = sizeof(struct sockaddr_in);
+    int new_s;
+    if((new_s = accept(passive_s, (struct sockaddr*) sin, (socklen_t*) &len)) < 0) {
+        perror("error: accept");
+        close(passive_s);
+        exit(-1);
+    }
+
+    clients[nClients].s = new_s;
+    nClients++;
+}
 
 int openSocket(char const* addr, struct sockaddr_in* sin) {
     int server_port;
@@ -55,29 +74,15 @@ int openSocket(char const* addr, struct sockaddr_in* sin) {
         close(passive_s);
         return 0;   
     }
+
+    newClient(sin);
+    puts("Server: conectado");
+
     return 1;
 }
 
-/* Função para atribuição de novos clientes */
-void newClient(struct sockaddr_in* sin) {
-    if(nClients == 256) {
-        fprintf(stderr, "error: Máximo de clients atingido\n");
-        return;
-    }
-
-    int len = sizeof(struct sockaddr_in);
-    int new_s;
-    if((new_s = accept(passive_s, (struct sockaddr*) sin, (socklen_t*) &len)) < 0) {
-        perror("error: accept");
-        close(passive_s);
-        exit(-1);
-    }
-
-    clients[nClients].s = new_s;
-    nClients++;
-}
-
-void resetFDS(fd_set* fds) {
+int resetFDS(fd_set* fds) {
+    int i;
     int nfds = passive_s + 1;
 
     FD_ZERO(fds);
@@ -94,11 +99,11 @@ void resetFDS(fd_set* fds) {
 uint16_t nextSender = FRST_SENDER;
 uint16_t nextViewer = FRST_VIEWER;
 void processData(Client* client) {
+    puts("processData()");
     Mensagem msg;
-    char buff[sizeof(Mensagem)];
     int rtn = 0, r;
 
-    recvData(&msg);
+    recvData(client->s, (char*) &msg);
     switch(msg.type) {
         case OK:
             break;
@@ -115,7 +120,7 @@ void processData(Client* client) {
                 client->id = nextSender++;
                 client->viewer = 0;
             }
-            sendMSG(client->s, OK, SERVER_ID, client->id, 0);
+            sendMSG(client->s, OK, SERVER_ID, client->id, 0, 0, NULL);
             break;
         case FLW:
             break;
@@ -131,36 +136,51 @@ void processData(Client* client) {
 }
 
 int main(int argc, char const *argv[]) {
-    int i;
+    int i, j;
     struct sockaddr_in sin;
     uint16_t sequ = 0;
 
-    fd_set rfds;
+    int nfds, n;
+    fd_set rfds, rfds_bkp;
 
     if(!openSocket(argv[1], &sin))
         exit(-1);
 
-    int run = 1;
+    processData(&clients[0]);
+
+    /*int run = 1;
     while(run) {
+        nfds = passive_s + 1;
+        FD_ZERO(&rfds);
+        FD_SET(passive_s, &rfds);
+        for(i = 0; i < nClients; i++){
+            printf("clients[i].s(%d)\n", clients[i].s);
+            FD_SET(clients[i].s, &rfds);
+            if(clients[i].s >= nfds)
+                nfds = clients[i].s + 1;
+        }
         //Selecionando descritor de arquivo pronto para ser lido
-        int n, nfds = resetFDS(&rfds);
-        if(n = select(nfds, &rfds, NULL, NULL, NULL) < 0) {
+        //int n, nfds = resetFDS(&rfds);
+        puts("select_in()");
+        if(n = select(FD_SETSIZE, &rfds, NULL, NULL, NULL) < 0) {
             perror("error: select");
+            exit(-1);
         } else {
+            printf("select_out(); n=%d;\n", n);
             //Nova conexão à vista
             if(FD_ISSET(passive_s, &rfds)){
                 n--;
                 newClient(&sin);
-                puts("Server: conectado");
             }
 
             //Para cada descritor pronto, receber seus dados
+
             for(i = 0, j = 0; i < n; i++) {
                 while(!FD_ISSET(clients[j].s, &rfds)) j++; //Seleciona cliente entregando mensagem
                 processData(&clients[j]);
             }
         }
-    }
+    }*/
 
     //Fechando sockets
     for(i = 0; i < nClients; i++)

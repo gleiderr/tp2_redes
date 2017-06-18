@@ -20,11 +20,11 @@ int main(int argc, char const *argv[]) {
         exit(-1);
 
     puts("Viewer: conectado");
-    sendMSG(s, OI, 0, SERVER_ID, ++sequ);
-    recvData(&msg);
+    sendMSG(s, OI, 0, SERVER_ID, sequ++, 0, NULL);
+    recvData(s, (char*) &msg);
     if(msg.type == OK) {
         //Comunicação estabelecida!
-        myId = msg.dst;
+        myId = msg.dest;
         printf("Hello, I'm Viewer %d.\n", myId);
     }
     

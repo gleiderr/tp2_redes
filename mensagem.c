@@ -52,40 +52,55 @@ int openClient(char const* addr) {
     return s;
 }
 
-void sendMSG(int s, uint16_t type, uint16_t orig, uint16_t dest, uint16_t sequ) {
+void sendMSG(int s, uint16_t type, uint16_t orig, uint16_t dest, uint16_t sequ, uint16_t length, char* msg) {
+    printf("sendMSG(s(%d), type(%d), orig(%d), dest(%d), sequ(%d))\n", s, type, orig, dest, sequ);
     Mensagem m;
     m.type = type;
     m.orig = orig;
     m.dest = dest;
     m.sequ = sequ;
-    if(send(s, &m, sizeof(Mensagem), 0) < 0){
-        perror("error: sendMSG");
-        close(s);
-        exit(1);
-    }
+    m.length = length;
+    memcpy(m.msg, msg, length);
+    
+    int rtn = 0, r;
+    char* buff = (char*) &m;
+    //while(rtn < 10 + m.length){
+        fsync(s);
+        if(r = send(s, &buff[rtn], 10 + m.length - rtn, 0) < 0){
+            perror("error: sendMSG");
+            close(s);
+            exit(1);
+        }
+        rtn += r;
+        printf("sendMSG(); r=%d; rtn=%d;\n", r, rtn);
+    //}
 }
 
-void recvData(char* buff) {
+void recvData(int s, char* buff) {
     Mensagem* msg = (Mensagem*) buff;
     int rtn = 0, r;
 
     //Garante recebimento completo do cabeçalho
     while(rtn < 8) {
-        if((r = recv(client->s, &buff[rtn], sizeof(Mensagem), 0)) < 0)
+        printf("recv1: rtn(%d)\n", rtn);
+        fsync(s);
+        if((r = recv(s, &buff[rtn], 10, 0)) < 0)
             perror("error: recv1");
         rtn += r;
     }
 
-    if(msg.type == MSG) {
+    if(msg->type == MSG) {
         //Garante o recebimento do cabeçalho até o campo length
         while(rtn < 10) {
-            if((r = recv(client->s, &buff[rtn], sizeof(Mensagem), 0)) < 0)
+            printf("recv2: rtn(%d)\n", rtn);
+            if((r = recv(s, &buff[rtn], 2, 0)) < 0)
                 perror("error: recv2");
             rtn += r;
         }
 
-        while(rtn < 10 + msg.length) {
-            if((r = recv(client->s, &buff[rtn], sizeof(Mensagem), 0)) < 0)
+        while(rtn < 10 + msg->length) {
+            printf("recv3: rtn(%d)\n", rtn);
+            if((r = recv(s, &buff[rtn], msg->length, 0)) < 0)
                 perror("error: recv3");
             rtn += r;
         }    

@@ -21,11 +21,11 @@ int main(int argc, char const *argv[]) {
         exit(-1);
 
     puts("Sender: conectado");
-    sendMSG(s, OI, 1, SERVER_ID, ++sequ);
-    recvData(&msg);
+    sendMSG(s, OI, 1, SERVER_ID, sequ++, 0, NULL);
+    recvData(s, (char*) &msg);
     if(msg.type == OK) {
         //Comunicação estabelecida!
-        myId = msg.dst;
+        myId = msg.dest;
         printf("Hello, I'm Sender %d.\n", myId);
     }
 
