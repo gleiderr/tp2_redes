@@ -52,19 +52,25 @@ int openClient(char const* addr) {
     return s;
 }
 
-/* Se id == 0, exibidor
+/* Para o 
+ * Se id == 0, exibidor
  * Se pow(2, 12) <= id <= pow(2, 13) - 1, emissor
  */
-void sendOI(int s, uint16_t id, uint16_t sequ) {
-    Cabecalho c;
-    c.type = OI;
-    c.orig = id;
-    c.dest = SERVER_ID;
-    c.sequ = sequ;
+void sendOI(int s, uint16_t sequ) {
+    Mensagem msg;
+    msg.type = OI;
+    msg.orig = 0;
+    msg.dest = SERVER_ID;
+    msg.sequ = sequ;
 
-    if(send(s, &c, sizeof(Cabecalho), 0) < 0){
+    if(send(s, &msg, sizeof(Mensagem), 0) < 0){
         perror("error: sendOI");
         close(s);
         exit(1);
     }
+    printf("OImsg eviada com sucesso. S:%d \n");
 }
+
+
+
+

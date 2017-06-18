@@ -11,15 +11,20 @@
 #include "mensagem.h"
 #include "clientConnection.h"
 
-int main(int argc, char const *argv[]) {   
+int main(int argc, char const *argv[]) 
+{   
     uint16_t myId;
     uint16_t sequ = 0;
     int s;
 
     if(!(s = openClient(argv[1])))
         exit(-1);
-
     puts("Viewer: conectado");
+
+    while(myId == 0) {
+    	receive()
+
+    }
     
     close(s);
     exit(0);
