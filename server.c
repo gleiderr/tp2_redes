@@ -94,18 +94,11 @@ void resetFDS(fd_set* fds) {
 uint16_t nextSender = FRST_SENDER;
 uint16_t nextViewer = FRST_VIEWER;
 void processData(Client* client) {
-    Mensagem* msg;
+    Mensagem msg;
     char buff[sizeof(Mensagem)];
     int rtn = 0, r;
 
-    //Garante recebimento completo do cabeçalho
-    while(rtn < 8) {
-        if((r = recv(client->s, &buff[rtn], sizeof(Mensagem), 0)) < 0)
-            perror("error: recv");
-        rtn += r;
-    }
-    msg = (Mensagem*) buff;
-
+    recvData(&msg);
     switch(msg.type) {
         case OK:
             break;

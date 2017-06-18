@@ -10,7 +10,8 @@
 
 #include "mensagem.h"
 
-int main(int argc, char const *argv[]) {   
+int main(int argc, char const *argv[]) {
+    Mensagem msg;
     uint16_t myId;
     uint16_t sequ = 0;
     int s;
@@ -20,6 +21,12 @@ int main(int argc, char const *argv[]) {
 
     puts("Viewer: conectado");
     sendMSG(s, OI, 0, SERVER_ID, ++sequ);
+    recvData(&msg);
+    if(msg.type == OK) {
+        //Comunicação estabelecida!
+        myId = msg.dst;
+        printf("Hello, I'm Viewer %d.\n", myId);
+    }
     
     close(s);
     exit(0);

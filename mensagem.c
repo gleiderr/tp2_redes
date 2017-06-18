@@ -64,3 +64,30 @@ void sendMSG(int s, uint16_t type, uint16_t orig, uint16_t dest, uint16_t sequ) 
         exit(1);
     }
 }
+
+void recvData(char* buff) {
+    Mensagem* msg = (Mensagem*) buff;
+    int rtn = 0, r;
+
+    //Garante recebimento completo do cabeçalho
+    while(rtn < 8) {
+        if((r = recv(client->s, &buff[rtn], sizeof(Mensagem), 0)) < 0)
+            perror("error: recv1");
+        rtn += r;
+    }
+
+    if(msg.type == MSG) {
+        //Garante o recebimento do cabeçalho até o campo length
+        while(rtn < 10) {
+            if((r = recv(client->s, &buff[rtn], sizeof(Mensagem), 0)) < 0)
+                perror("error: recv2");
+            rtn += r;
+        }
+
+        while(rtn < 10 + msg.length) {
+            if((r = recv(client->s, &buff[rtn], sizeof(Mensagem), 0)) < 0)
+                perror("error: recv3");
+            rtn += r;
+        }    
+    }
+}
