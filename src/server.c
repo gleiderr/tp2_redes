@@ -80,6 +80,17 @@ int newClient(struct sockaddr_in* sin) {
     return new_s;
 }
 
+void buildCList(uint16_t* clist)
+{ 
+    int i;
+    for(i = 0, cl = 0; cl < nClients; i++, cl = cl + 2){
+        clist[cl] = clients[i].id;
+        clist[cl+1] = clients[i].viewer;
+        printf("Colocando os ids: %d sender , %dviewer \n", clients[i].id, clients[i].viewer);
+    }
+}
+ 
+
 void processData(int s) {
     //puts("processData()");
     Mensagem msg;
@@ -109,8 +120,33 @@ void processData(int s) {
         case MSG:
             break;
         case CREQ:
+             /* Verifica se endereço de destino é valido. */ 
+            if(msg.dest >= FRST_VIEWER && dest.ori >= LAST_VIEWER){
+                sendMSG(s, ERRO, SERVER_ID, msg.orig, msg.sequ, 0, NULL); // Destino da requisição invalido. 
+                printf("Error: CREQ destiny invalid number. \n");
+            }
+ 
+            /* Verifica se o endereço de destino existe ou esta conectado. */
+            bool destExists = FALSE;
+            for(i = 0; i < FD_SETSIZE; i++){
+                if(clients[i].id == msg.dest)
+                    destExists = TRUE;
+            }
+ 
+            /* Se o destino existir. */
+            if(destExists){
+                uint16_t[nClients] clist;
+                buildCList(&clist);
+            } else {
+                printf("Error: CREQ destiny isn't connected or doesn't exist. \n");
+                break;
+            }
+ 
+            sendCLIST(s, CLIST, SERVER_ID, msg.dest, msg.sequ, nClients, clist); // Destino da requisição invalido. 
+ 
             break;
         case CLIST:
+            printf("Error: This type of mensage can`t be received from a client. Transmission error. \n");
             break;
         default:
             fprintf(stderr, "error: msg.type(%d) inválido\n", msg.type);
