@@ -10,6 +10,7 @@
 #include <errno.h>
 
 #include "mensagem.h"
+#include "serverConnection.h"
 
 #define MAX_PENDING 256
 
@@ -26,27 +27,10 @@ typedef struct {
 int nClients = 0;
 Client clients[FD_SETSIZE]; //índice = socket do cliente
 
+
+uint16_t nextSender = FRST_SENDER; // Contador de Senders para atribuição de ids 
+uint16_t nextViewer = FRST_VIEWER; // Contaor de Viewers para atribuição de ids 
 int passive_s; //Descritor para novas conexões
-
-/* Função para atribuição de novos clientes */
-int newClient(struct sockaddr_in* sin) {
-    if(nClients == FD_SETSIZE) {
-        fprintf(stderr, "error: Máximo de clients atingido: %d\n", FD_SETSIZE);
-        return -1;
-    }
-
-    int new_s;
-    int len = sizeof(struct sockaddr_in);
-    if((new_s = accept(passive_s, (struct sockaddr*) sin, (socklen_t*) &len)) < 0) {
-        perror("error: accept");
-        close(passive_s);
-        exit(-1);
-    }
-
-    nClients++;
-    //printf("New client #%d socket: %d.\n", nClients, new_s);
-    return new_s;
-}
 
 int openSocket(char const* addr, struct sockaddr_in* sin) {
     int server_port;
@@ -76,8 +60,26 @@ int openSocket(char const* addr, struct sockaddr_in* sin) {
     return 1;
 }
 
-uint16_t nextSender = FRST_SENDER;
-uint16_t nextViewer = FRST_VIEWER;
+/* Função para atribuição de novos clientes */
+int newClient(struct sockaddr_in* sin) {
+    if(nClients == FD_SETSIZE) {
+        fprintf(stderr, "error: Máximo de clients atingido: %d\n", FD_SETSIZE);
+        return -1;
+    }
+
+    int new_s;
+    int len = sizeof(struct sockaddr_in);
+    if((new_s = accept(passive_s, (struct sockaddr*) sin, (socklen_t*) &len)) < 0) {
+        perror("error: accept");
+        close(passive_s);
+        exit(-1);
+    }
+
+    nClients++;
+    //printf("New client #%d socket: %d.\n", nClients, new_s);
+    return new_s;
+}
+
 void processData(int s) {
     //puts("processData()");
     Mensagem msg;
