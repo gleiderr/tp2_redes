@@ -18,7 +18,7 @@ int main(int argc, char const *argv[]) {
     uint16_t sequ = 0;
     int s;
 
-    bool flagEND = FALSE;
+    //bool flagEND = FALSE;
 
     //Enviar mensagem de OI para servidor:
     if(!(s = openClient(argv[1])))
