@@ -10,6 +10,7 @@
 
 #include "mensagem.h"
 
+/** Não faz parte da mensagem. Pensando em local melhor para coloca-lo 
 int openClient(char const* addr) {
     int i, s;
     int server_port;
@@ -52,9 +53,6 @@ int openClient(char const* addr) {
     return s;
 }
 
-/* Se id == 0, exibidor
- * Se pow(2, 12) <= id <= pow(2, 13) - 1, emissor
- */
 void sendOI(int s, uint16_t id, uint16_t sequ) {
     Cabecalho c;
     c.type = OI;
@@ -68,3 +66,4 @@ void sendOI(int s, uint16_t id, uint16_t sequ) {
         exit(1);
     }
 }
+*/ 

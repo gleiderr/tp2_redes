@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include "mensagem.h"
+#include "clientConnection.h"
 
 int main(int argc, char const *argv[]) {   
     uint16_t myId;

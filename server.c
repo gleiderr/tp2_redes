@@ -17,13 +17,13 @@
 #define LAST_SENDER (pow(2, 12) - 1)
 #define FRST_VIEWER (pow(2, 12))
 #define LAST_VIEWER (pow(2, 13) - 1)
-
+#define MAX_CLIENTS 256;
 
 //Estruturas de dados de clientes
 typedef struct {
     int s;
 } Client;
-#define MAX_CLIENTS 256;
+
 int nClients = 0;
 Client clients[256];
 
@@ -115,6 +115,7 @@ int main(int argc, char const *argv[]) {
     //Fechando sockets
     for(i = 0; i < nClients; i++)
         close(clients[i].s);
+
     close(passive_s);
     exit(0);
 }
