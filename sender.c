@@ -20,7 +20,7 @@ int main(int argc, char const *argv[]) {
     if(!(s = openClient(argv[1])))
         exit(-1);
 
-    puts("Sender: conectado");
+    //puts("Sender: conectado");
     sendMSG(s, OI, 1, SERVER_ID, sequ++, 0, NULL);
     recvData(s, (char*) &msg);
     if(msg.type == OK) {

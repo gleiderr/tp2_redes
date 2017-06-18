@@ -45,6 +45,7 @@ int newClient(struct sockaddr_in* sin) {
     }
 
     nClients++;
+    //printf("New client #%d socket: %d.\n", nClients, new_s);
     return new_s;
 }
 
@@ -79,7 +80,7 @@ int openSocket(char const* addr, struct sockaddr_in* sin) {
 uint16_t nextSender = FRST_SENDER;
 uint16_t nextViewer = FRST_VIEWER;
 void processData(int s) {
-    puts("processData()");
+    //puts("processData()");
     Mensagem msg;
     int rtn = 0, r;
 
@@ -132,17 +133,24 @@ int main(int argc, char const *argv[]) {
     int run = 1;
     while(run) {
         rfds = rfds_bkp;
+        /*for(s = 0; s < FD_SETSIZE; s++)
+            if(FD_ISSET(s, &rfds))
+                printf("Socket conectado: %d.\n", s);*/
 
         //Selecionando descritor de arquivo pronto para ser lido
+        //printf("select_in()\n");
         if(select(FD_SETSIZE, &rfds, NULL, NULL, NULL) < 0) {
             perror("error: select");
             exit(-1);
         } else {
+            //printf("select_out()\n");
             for(s = 0; s < FD_SETSIZE; s++) { //Testa todos possíveis sockets remetentes
+                //printf("FD_ISSET(s(%d/%d), &rfds): %d.\n", s, FD_SETSIZE, FD_ISSET(s, &rfds));
                 if(FD_ISSET(s, &rfds)) {
-                    if(s == passive_s) //Novo cliente
-                        FD_SET(newClient(&sin), &rfds_bkp);
-                    else //Dados chegando
+                    if(s == passive_s) {//Novo cliente
+                        int new_s = newClient(&sin);
+                        FD_SET(new_s, &rfds_bkp);
+                    } else //Dados chegando
                         processData(s);
                 }
             }
