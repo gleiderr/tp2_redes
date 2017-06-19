@@ -10,7 +10,6 @@
 #include <errno.h>
 
 #include "mensagem.h"
-#include "serverConnection.h"
 
 #define MAX_PENDING 256
 
@@ -34,6 +33,9 @@ uint16_t nextSender = FRST_SENDER; // Contador de Senders para atribuição de i
 uint16_t nextViewer = FRST_VIEWER; // Contaor de Viewers para atribuição de ids 
 int passive_s; //Descritor para novas conexões
 
+/**
+ * Procura por cliente especifico para o encaminhamento da mensagem a ele destinada. 
+ */
 int client_s(int id) 
 {
     int s;
@@ -43,13 +45,18 @@ int client_s(int id)
     return -1; //Se não encontrar retorna -1
 }
 
+/**
+ * Desconecta cliente e o remove da lista de usuarios ativos.  
+ */ 
 void disconnect(int s) {
     FD_CLR(s, &rfds_bkp);
     close(s);
     nClients--;
 }
 
- 
+/**
+ * Abre a conexão e o socket, inicializando a interface select. 
+ */
 int openSocket(char const* addr, struct sockaddr_in* sin) {
     int server_port;
     if ((passive_s = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
@@ -98,6 +105,9 @@ int newClient(struct sockaddr_in* sin) {
     return new_s;
 }
 
+/*
+ * Constroí o CLIST com o os senders e viewers associados a eles. de forma que o receptor receba uma mensagem: senderID -> viewerID. 
+ */
 void buildCList(char* clist)
 {
     int i;
@@ -114,17 +124,11 @@ void buildCList(char* clist)
             printf("%s\n", clist);
         }
     }
-    /*
-    int i, cl;
-    for(i = 0, cl = 0; cl < nClients; i++, cl = cl + 2){
-        clist[cl] = clients[i].id;
-        clist[cl+1] = clients[i].viewer;
-        printf("Colocando os ids: %d sender , %dviewer \n", clients[i].id, clients[i].viewer);
-    }
-    */
 }
- 
 
+/**
+ * Quando a interface select recebe algum pacote em um dos clientes conectados. Ele processa a mensagem recebida e procede da maneira adequada. 
+ */
 void processData(int s) {
     //puts("processData_in()");
     Mensagem msg;

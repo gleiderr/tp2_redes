@@ -43,7 +43,7 @@ int main(int argc, char const *argv[]) {
                 sendMSG(s, OK, myId, msg.orig, msg.sequ, 0, NULL);
                 break;
             case CLIST:
-                printf("List of connected host: %s", msg.msg);
+                printf("List of connected host: %s",     msg.msg);
                 sendMSG(s, OK, myId, msg.orig, msg.sequ, 0, NULL);
             default:
                 fprintf(stderr, "error: msg.type(%d) inesperado\n", msg.type);
@@ -51,6 +51,6 @@ int main(int argc, char const *argv[]) {
     }
     
     close(s);
-    printf("Viewer %d said goodbye!\n", myId);
+    printf("Viewer %d says goodbye!\n", myId);
     exit(0);
 }
