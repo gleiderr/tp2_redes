@@ -92,7 +92,7 @@ void buildCList(uint16_t* clist)
  
 
 void processData(int s) {
-    //puts("processData()");
+    //puts("processData_in()");
     Mensagem msg;
     int rtn = 0, r;
 
@@ -118,6 +118,36 @@ void processData(int s) {
         case FLW:
             break;
         case MSG:
+            if(msg.orig == clients[s].id) { //Confirmando identidade do emissor!
+                int s_dest;
+                if(msg.dest) {
+                    s_dest = client_s(msg.dest);
+
+                    //Se destino for sender, destino é o viewer dele
+                    if(clients[s_dest].id >= FRST_SENDER && clients[s_dest].id <= LAST_SENDER){
+                        if(clients[s_dest].viewer) {
+                            s_dest = client_s(clients[s_dest].viewer);
+                        } else { //Erro se não houver viewer associando ao sender destinatário
+                            s_dest = -1;
+                        }
+                    }
+                    if(s_dest >= 0){
+                        sendMSG(s_dest,msg.type,msg.orig, msg.dest, msg.sequ, msg.length, msg.msg);
+                        sendMSG(s, OK, SERVER_ID, msg.orig, msg.sequ, 0, NULL);
+                    } else {
+                        sendMSG(s, ERRO, SERVER_ID, clients[s].id, msg.sequ, 0, NULL);
+                    }
+                } else { //broadcast para todos viewers
+                    for(s_dest = 0; s_dest < FD_SETSIZE; s_dest++) {
+                        if(FD_ISSET(s_dest, &rfds_bkp)) {
+                            int id = clients[s_dest].id;
+                            if(id >= FRST_VIEWER && id <= LAST_VIEWER) //Se viewer
+                                sendMSG(s_dest, msg.type, msg.orig, msg.dest, msg.sequ, msg.length, msg.msg);
+                        }
+                    }
+                    sendMSG(s, OK, SERVER_ID, msg.orig, msg.sequ, 0, NULL);
+                }
+            } //else, simplesmente ignora
             break;
         case CREQ:
              /* Verifica se endereço de destino é valido. */ 
@@ -151,6 +181,7 @@ void processData(int s) {
         default:
             fprintf(stderr, "error: msg.type(%d) inválido\n", msg.type);
     }
+    //puts("processData_out()");
 }
 
 int main(int argc, char const *argv[]) {

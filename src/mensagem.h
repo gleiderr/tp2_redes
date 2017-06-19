@@ -20,11 +20,11 @@ typedef struct {
     uint16_t dest;
     uint16_t sequ;
     uint16_t length;
-    char msg[];
+    char msg[UINT16_MAX];
 } Mensagem;
 
 void sendMSG(int s, uint16_t type, uint16_t orig, uint16_t dest, uint16_t sequ, uint16_t length, char* msg);
 void recvData(int s, char* buff);
-void wait(uint16_t type, uint16_t orig, uint16_t dest, uint16_t sequ);
+void wait(int s, uint16_t type, uint16_t orig, uint16_t dest, uint16_t sequ);
 
 #endif

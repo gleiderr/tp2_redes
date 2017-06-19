@@ -31,17 +31,19 @@ int main(int argc, char const *argv[]) {
     int run = 1;
     while(run) {
         recvData(s, (char*) &msg);
-        if(msg.dest == myId) {
-            printf("Mensage from %d: ", msg.orig);
-            switch(msg.type) {
-                case FLW:
-                    sendMSG(s, OK, myId, msg.orig, msg.sequ, 0, NULL);
-                    run = 0;
-                    break;
-                default:
-                    fprintf(stderr, "error: msg.type(%d) inesperado\n", msg.type);
-            }
-        } //else ignora
+        switch(msg.type) {
+            case FLW:
+                printf("flw from %d.\n", msg.orig);
+                sendMSG(s, OK, myId, msg.orig, msg.sequ, 0, NULL);
+                run = 0;
+                break;
+            case MSG:
+                printf("msg from %d: %s", msg.orig, msg.msg);
+                sendMSG(s, OK, myId, msg.orig, msg.sequ, 0, NULL);
+                break;
+            default:
+                fprintf(stderr, "error: msg.type(%d) inesperado\n", msg.type);
+        }
     }
     
     close(s);

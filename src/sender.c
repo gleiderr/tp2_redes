@@ -34,7 +34,7 @@ int main(int argc, char const *argv[]) {
     }
 
     //Breve manual do usuário
-    puts(">> To exit, type "flw";");
+    puts(">> To exit, type 'flw';");
     puts(">> To send a message to someone with id 'n' type:");
     puts("   $ n, this is my message!");
     puts(">> To broadcast type:");
@@ -49,7 +49,7 @@ int main(int argc, char const *argv[]) {
         if(strcmp(buff, "flw\n") == 0) {
             //Encerrar esse sender. Servidor encerra o viewer deste sender
             sendMSG(s, FLW, myId, SERVER_ID, sequ++, 0, NULL);
-            wait(OK, SERVER_ID, myId, sequ-1);
+            wait(s, OK, SERVER_ID, myId, sequ-1);
             run = 0;
         } else { //Mensagem MSG
 
@@ -64,8 +64,8 @@ int main(int argc, char const *argv[]) {
             while(buff[i] == ',' || buff[i] == ' ')
                 i++;
 
-            sendMSG(s, MSG, myId, dest, sequ++, strlen(&buff[i]), &buff[i]);
-            wait(OK, SERVER_ID, myId, sequ-1);
+            sendMSG(s, MSG, myId, dest, sequ++, strlen(&buff[i]) + 1, &buff[i]);
+            wait(s, OK, SERVER_ID, myId, sequ-1);
         }
     }
 
