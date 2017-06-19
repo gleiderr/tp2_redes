@@ -1,0 +1,4 @@
+#ifndef SERVERCONNECTION_H
+#define SERVERCONNECTION_H
+
+#endif

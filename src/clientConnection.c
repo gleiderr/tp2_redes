@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include "mensagem.h"
+#include "clientConnection.h"
 
 int openClient(char const* addr) {
     int i, s;
