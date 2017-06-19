@@ -95,7 +95,7 @@ int openSocket(char const* addr, struct sockaddr_in* sin) {
 uint16_t nextSender = FRST_SENDER;
 uint16_t nextViewer = FRST_VIEWER;
 void processData(int s) {
-    //puts("processData()");
+    //puts("processData_in()");
     Mensagem msg;
 
     recvData(s, (char*) &msg);
@@ -135,8 +135,8 @@ void processData(int s) {
             }
             break;
         case MSG:
-            int s_dest;
             if(msg.orig == clients[s].id) { //Confirmando identidade do emissor!
+                int s_dest;
                 if(msg.dest) {
                     s_dest = client_s(msg.dest);
 
@@ -164,7 +164,7 @@ void processData(int s) {
                     }
                     sendMSG(s, OK, SERVER_ID, msg.orig, msg.sequ, 0, NULL);
                 }
-            }
+            } //else, simplesmente ignora
             break;
         case CREQ:
             break;
@@ -173,6 +173,7 @@ void processData(int s) {
         default:
             fprintf(stderr, "error: msg.type(%d) inválido\n", msg.type);
     }
+    //puts("processData_out()");
 }
 
 int main(int argc, char const *argv[]) {

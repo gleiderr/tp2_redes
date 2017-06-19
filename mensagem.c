@@ -11,7 +11,7 @@
 #include "mensagem.h"
 
 void sendMSG(int s, uint16_t type, uint16_t orig, uint16_t dest, uint16_t sequ, uint16_t length, char* msg) {
-    //printf("sendMSG(s(%d), type(%d), orig(%d), dest(%d), sequ(%d), length(%d))\n", s, type, orig, dest, sequ, length);
+    //printf("sendMSG_in(s(%d), type(%d), orig(%d), dest(%d), sequ(%d), length(%d), msg(%s))\n", s, type, orig, dest, sequ, length, msg);
     Mensagem m;
     m.type = type;
     m.orig = orig;
@@ -20,12 +20,12 @@ void sendMSG(int s, uint16_t type, uint16_t orig, uint16_t dest, uint16_t sequ, 
     m.length = length;
     memcpy(m.msg, msg, length);
     
-    if(send(s, &m, 10 + m.length, 0) < 0){
+    if(send(s, &m, 10 + length, 0) < 0){
         perror("error: sendMSG");
-
         close(s);
         exit(1);
     }
+    //printf("sendMSG_out()\n");
 }
 
 void recvData(int s, char* buff) {
@@ -45,7 +45,8 @@ void recvData(int s, char* buff) {
     //printf("recvData_out()\n");
 }
 
-void wait(uint16_t type, uint16_t orig, uint16_t dest, uint16_t sequ) {
+void wait(int s, uint16_t type, uint16_t orig, uint16_t dest, uint16_t sequ) {
+    Mensagem msg;
     while(1) {
         recvData(s, (char*) &msg);
         if(msg.type == type && msg.orig == orig && msg.dest == dest && msg.sequ == sequ)

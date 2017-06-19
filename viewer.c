@@ -39,7 +39,7 @@ int main(int argc, char const *argv[]) {
                     run = 0;
                     break;
                 case MSG:
-                    printf("msg from %d: %s\n", msg.orig, msg.msg);
+                    printf("msg from %d: %s", msg.orig, msg.msg);
                     sendMSG(s, OK, myId, msg.orig, msg.sequ, 0, NULL);
                     break;
                 default:
