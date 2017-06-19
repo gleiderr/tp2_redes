@@ -10,6 +10,7 @@
 #include <errno.h>
 
 #include "mensagem.h"
+#include "serverConnection.h"
 
 #define MAX_PENDING 256
 
@@ -17,9 +18,6 @@
 #define LAST_SENDER 4095
 #define FRST_VIEWER 4096
 #define LAST_VIEWER 8191
-
-int passive_s; //Descritor para novas conexões
-fd_set rfds_bkp; //Conjunto de descritores ativos
 
 //Estruturas de dados de clientes
 typedef struct {
@@ -29,40 +27,10 @@ typedef struct {
 int nClients = 0;
 Client clients[FD_SETSIZE]; //índice = socket do cliente
 
-int client_s(int id) {
-    int s;
-    for(s = 0; s < FD_SETSIZE; s++)
-        if(FD_ISSET(s, &rfds_bkp) && clients[s].id == id)
-            return s; //Retorna socket
 
-    return -1; //Se não encontrar retorna -1
-}
-
-/* Função para atribuição de novos clientes */
-int newClient(struct sockaddr_in* sin) {
-    if(nClients == FD_SETSIZE) {
-        fprintf(stderr, "error: Máximo de clients atingido: %d\n", FD_SETSIZE);
-        return -1;
-    }
-
-    int new_s;
-    int len = sizeof(struct sockaddr_in);
-    if((new_s = accept(passive_s, (struct sockaddr*) sin, (socklen_t*) &len)) < 0) {
-        perror("error: accept");
-        close(passive_s);
-        exit(-1);
-    }
-
-    nClients++;
-    //printf("New client #%d socket: %d.\n", nClients, new_s);
-    return new_s;
-}
-
-void disconnect(int s) {
-    FD_CLR(s, &rfds_bkp);
-    close(s);
-    nClients--;
-}
+uint16_t nextSender = FRST_SENDER; // Contador de Senders para atribuição de ids 
+uint16_t nextViewer = FRST_VIEWER; // Contaor de Viewers para atribuição de ids 
+int passive_s; //Descritor para novas conexões
 
 int openSocket(char const* addr, struct sockaddr_in* sin) {
     int server_port;
@@ -92,11 +60,30 @@ int openSocket(char const* addr, struct sockaddr_in* sin) {
     return 1;
 }
 
-uint16_t nextSender = FRST_SENDER;
-uint16_t nextViewer = FRST_VIEWER;
+/* Função para atribuição de novos clientes */
+int newClient(struct sockaddr_in* sin) {
+    if(nClients == FD_SETSIZE) {
+        fprintf(stderr, "error: Máximo de clients atingido: %d\n", FD_SETSIZE);
+        return -1;
+    }
+
+    int new_s;
+    int len = sizeof(struct sockaddr_in);
+    if((new_s = accept(passive_s, (struct sockaddr*) sin, (socklen_t*) &len)) < 0) {
+        perror("error: accept");
+        close(passive_s);
+        exit(-1);
+    }
+
+    nClients++;
+    //printf("New client #%d socket: %d.\n", nClients, new_s);
+    return new_s;
+}
+
 void processData(int s) {
     //puts("processData()");
     Mensagem msg;
+    int rtn = 0, r;
 
     recvData(s, (char*) &msg);
     switch(msg.type) {
@@ -108,31 +95,16 @@ void processData(int s) {
             if(msg.orig == 0) { //Exibidor
                 clients[s].id = nextViewer++;
                 clients[s].viewer = 0;
-            } else if(msg.orig >= FRST_VIEWER && msg.orig <= LAST_VIEWER) { //Emissor com viewer
+            } else if(msg.orig >= FRST_VIEWER || msg.orig <= LAST_VIEWER) { //Emissor com viewer
                 clients[s].id = nextSender++;
                 clients[s].viewer = msg.orig;
             } else { //Emissor sem viewer
                 clients[s].id = nextSender++;
                 clients[s].viewer = 0;
             }
-            sendMSG(s, OK, SERVER_ID, clients[s].id, msg.sequ, 0, NULL);
+            sendMSG(s, OK, SERVER_ID, clients[s].id, 0, 0, NULL);
             break;
         case FLW:
-            if(msg.orig >= FRST_SENDER && msg.orig <= LAST_SENDER) {//FLW de emissor
-                if(msg.orig == clients[s].id) { //Confirmando identidade do emissor!
-                    //FLW para viewer associado
-                    if(clients[s].viewer) {
-                        int s_viewer = client_s(clients[s].viewer);
-                        sendMSG(s_viewer, FLW, SERVER_ID, clients[s].viewer, msg.sequ/*Qual seria?*/, 0, NULL);
-
-                        disconnect(s_viewer); //Desconecta viewer
-                    }
-
-                    //Desconecta sender
-                    sendMSG(s, OK, SERVER_ID, clients[s].id, msg.sequ, 0, NULL);
-                    disconnect(s);
-                } //else, simplesmente ignora
-            }
             break;
         case MSG:
             break;
@@ -150,7 +122,7 @@ int main(int argc, char const *argv[]) {
     struct sockaddr_in sin;
     uint16_t sequ = 0;
 
-    fd_set rfds;
+    fd_set rfds, rfds_bkp;
 
     if(!openSocket(argv[1], &sin))
         exit(-1);
