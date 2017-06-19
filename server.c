@@ -135,6 +135,36 @@ void processData(int s) {
             }
             break;
         case MSG:
+            int s_dest;
+            if(msg.orig == clients[s].id) { //Confirmando identidade do emissor!
+                if(msg.dest) {
+                    s_dest = client_s(msg.dest);
+
+                    //Se destino for sender, destino é o viewer dele
+                    if(clients[s_dest].id >= FRST_SENDER && clients[s_dest].id <= LAST_SENDER){
+                        if(clients[s_dest].viewer) {
+                            s_dest = client_s(clients[s_dest].viewer);
+                        } else { //Erro se não houver viewer associando ao sender destinatário
+                            s_dest = -1;
+                        }
+                    }
+                    if(s_dest >= 0){
+                        sendMSG(s_dest,msg.type,msg.orig, msg.dest, msg.sequ, msg.length, msg.msg);
+                        sendMSG(s, OK, SERVER_ID, msg.orig, msg.sequ, 0, NULL);
+                    } else {
+                        sendMSG(s, ERRO, SERVER_ID, clients[s].id, msg.sequ, 0, NULL);
+                    }
+                } else { //broadcast para todos viewers
+                    for(s_dest = 0; s_dest < FD_SETSIZE; s_dest++) {
+                        if(FD_ISSET(s_dest, &rfds_bkp)) {
+                            int id = clients[s_dest].id;
+                            if(id >= FRST_VIEWER && id <= LAST_VIEWER) //Se viewer
+                                sendMSG(s_dest, msg.type, msg.orig, msg.dest, msg.sequ, msg.length, msg.msg);
+                        }
+                    }
+                    sendMSG(s, OK, SERVER_ID, msg.orig, msg.sequ, 0, NULL);
+                }
+            }
             break;
         case CREQ:
             break;
