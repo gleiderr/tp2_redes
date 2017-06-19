@@ -38,7 +38,8 @@ int main(int argc, char const *argv[]) {
     puts(">> To send a message to someone with id 'n' type:");
     puts("   $ n, this is my message!");
     puts(">> To broadcast type:");
-    puts("   $ 0, this is my message!\n");
+    puts("   $ 0, this is my message!");
+    puts(">> To see the list of connected hosts, type creq\n");
 
     int run = 1, waitOK = 0;
     char buff[UINT16_MAX];
@@ -51,6 +52,9 @@ int main(int argc, char const *argv[]) {
             sendMSG(s, FLW, myId, SERVER_ID, sequ++, 0, NULL);
             wait(s, OK, SERVER_ID, myId, sequ-1);
             run = 0;
+        } else if (strcmp(buff, "creq\n") == 0){
+            sendMSG(s, CREQ, myId, SERVER_ID, sequ++, 0, NULL);
+            wait(s, OK, SERVER_ID, myId, sequ-1);
         } else { //Mensagem MSG
 
             //Identificação do destino

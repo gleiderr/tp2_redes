@@ -19,6 +19,7 @@ int main(int argc, char const *argv[]) {
 
     if(!(s = openClient(argv[1])))
         exit(-1);
+    printf("Socket opened!\n");
 
     sendMSG(s, OI, 0, SERVER_ID, sequ++, 0, NULL);
     recvData(s, (char*) &msg);
@@ -41,6 +42,9 @@ int main(int argc, char const *argv[]) {
                 printf("msg from %d: %s", msg.orig, msg.msg);
                 sendMSG(s, OK, myId, msg.orig, msg.sequ, 0, NULL);
                 break;
+            case CLIST:
+                printf("List of connected host: %s", msg.msg);
+                sendMSG(s, OK, myId, msg.orig, msg.sequ, 0, NULL);
             default:
                 fprintf(stderr, "error: msg.type(%d) inesperado\n", msg.type);
         }

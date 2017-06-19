@@ -27,11 +27,29 @@ typedef struct {
 int nClients = 0;
 Client clients[FD_SETSIZE]; //índice = socket do cliente
 
+fd_set rfds_bkp; //Conjunto de descritores ativos
+ 
 
 uint16_t nextSender = FRST_SENDER; // Contador de Senders para atribuição de ids 
 uint16_t nextViewer = FRST_VIEWER; // Contaor de Viewers para atribuição de ids 
 int passive_s; //Descritor para novas conexões
 
+int client_s(int id) 
+{
+    int s;
+    for(s = 0; s < FD_SETSIZE; s++)
+        if(FD_ISSET(s, &rfds_bkp) && clients[s].id == id)
+            return s; //Retorna socket
+    return -1; //Se não encontrar retorna -1
+}
+
+void disconnect(int s) {
+    FD_CLR(s, &rfds_bkp);
+    close(s);
+    nClients--;
+}
+
+ 
 int openSocket(char const* addr, struct sockaddr_in* sin) {
     int server_port;
     if ((passive_s = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
@@ -80,14 +98,30 @@ int newClient(struct sockaddr_in* sin) {
     return new_s;
 }
 
-void buildCList(uint16_t* clist)
-{ 
+void buildCList(char* clist)
+{
     int i;
+    char temp[8];
+    for(i = 0; i < FD_SETSIZE; i++)
+    {
+        if(clients[i].id < FRST_VIEWER){ // Mostra somente os senders que tem associados a eles um viewer
+            sprintf(temp, "%d", clients[i].id);
+            strcat (clist, temp);
+            strcat (clist, " -> ");
+            sprintf(temp, "%d", clients[i].viewer);
+            strcat (clist, temp);
+            strcat (clist, ", ");
+            printf("%s\n", clist);
+        }
+    }
+    /*
+    int i, cl;
     for(i = 0, cl = 0; cl < nClients; i++, cl = cl + 2){
         clist[cl] = clients[i].id;
         clist[cl+1] = clients[i].viewer;
         printf("Colocando os ids: %d sender , %dviewer \n", clients[i].id, clients[i].viewer);
     }
+    */
 }
  
 
@@ -106,17 +140,32 @@ void processData(int s) {
             if(msg.orig == 0) { //Exibidor
                 clients[s].id = nextViewer++;
                 clients[s].viewer = 0;
-            } else if(msg.orig >= FRST_VIEWER || msg.orig <= LAST_VIEWER) { //Emissor com viewer
+            } else if(msg.orig >= FRST_VIEWER && msg.orig <= LAST_VIEWER) { //Emissor com viewer
                 clients[s].id = nextSender++;
                 clients[s].viewer = msg.orig;
             } else { //Emissor sem viewer
                 clients[s].id = nextSender++;
                 clients[s].viewer = 0;
             }
-            sendMSG(s, OK, SERVER_ID, clients[s].id, 0, 0, NULL);
+            sendMSG(s, OK, SERVER_ID, clients[s].id, msg.sequ, 0, NULL);
             break;
         case FLW:
-            break;
+            if(msg.orig >= FRST_SENDER && msg.orig <= LAST_SENDER) {//FLW de emissor
+                if(msg.orig == clients[s].id) { //Confirmando identidade do emissor!
+                    //FLW para viewer associado
+                    if(clients[s].viewer) {
+                        int s_viewer = client_s(clients[s].viewer);
+                        sendMSG(s_viewer, FLW, SERVER_ID, clients[s].viewer, msg.sequ/*Qual seria?*/, 0, NULL);
+                        disconnect(s_viewer); //Desconecta viewer
+                    }
+ 
+ 
+                    //Desconecta sender
+                   sendMSG(s, OK, SERVER_ID, clients[s].id, msg.sequ, 0, NULL);
+                    disconnect(s);
+               } //else, simplesmente ignora
+             }
+             break;
         case MSG:
             if(msg.orig == clients[s].id) { //Confirmando identidade do emissor!
                 int s_dest;
@@ -151,28 +200,29 @@ void processData(int s) {
             break;
         case CREQ:
              /* Verifica se endereço de destino é valido. */ 
-            if(msg.dest >= FRST_VIEWER && dest.ori >= LAST_VIEWER){
+            if(msg.dest >= FRST_VIEWER && msg.dest >= LAST_VIEWER){
                 sendMSG(s, ERRO, SERVER_ID, msg.orig, msg.sequ, 0, NULL); // Destino da requisição invalido. 
                 printf("Error: CREQ destiny invalid number. \n");
             }
  
             /* Verifica se o endereço de destino existe ou esta conectado. */
-            bool destExists = FALSE;
+            int destExists = 0, i;
             for(i = 0; i < FD_SETSIZE; i++){
                 if(clients[i].id == msg.dest)
-                    destExists = TRUE;
+                    destExists = 1;
             }
  
             /* Se o destino existir. */
             if(destExists){
-                uint16_t[nClients] clist;
-                buildCList(&clist);
+                char clist [UINT16_MAX];
+                buildCList((char*) &clist);
+                sendMSG(s, CLIST, SERVER_ID, msg.dest, msg.sequ, nClients, clist);
+                sendMSG(s, OK, SERVER_ID, msg.orig, msg.sequ, 0, NULL);
             } else {
+                sendMSG(s, ERRO, SERVER_ID, msg.orig, msg.sequ, 0, NULL); // Destino nao existe
                 printf("Error: CREQ destiny isn't connected or doesn't exist. \n");
                 break;
             }
- 
-            sendCLIST(s, CLIST, SERVER_ID, msg.dest, msg.sequ, nClients, clist); // Destino da requisição invalido. 
  
             break;
         case CLIST:
@@ -189,10 +239,11 @@ int main(int argc, char const *argv[]) {
     struct sockaddr_in sin;
     uint16_t sequ = 0;
 
-    fd_set rfds, rfds_bkp;
+    fd_set rfds;
 
     if(!openSocket(argv[1], &sin))
         exit(-1);
+    printf("Socket opened. \n");
 
     //processData(&clients[0]);
     FD_ZERO(&rfds_bkp);
@@ -206,16 +257,17 @@ int main(int argc, char const *argv[]) {
                 printf("Socket conectado: %d.\n", s);*/
 
         //Selecionando descritor de arquivo pronto para ser lido
-        //printf("select_in()\n");
+        printf("select_in()\n");
         if(select(FD_SETSIZE, &rfds, NULL, NULL, NULL) < 0) {
             perror("error: select");
             exit(-1);
         } else {
-            //printf("select_out()\n");
+            printf("select_out()\n");
             for(s = 0; s < FD_SETSIZE; s++) { //Testa todos possíveis sockets remetentes
-                //printf("FD_ISSET(s(%d/%d), &rfds): %d.\n", s, FD_SETSIZE, FD_ISSET(s, &rfds));
+                printf("FD_ISSET(s(%d/%d), &rfds): %d.\n", s, FD_SETSIZE, FD_ISSET(s, &rfds));
                 if(FD_ISSET(s, &rfds)) {
                     if(s == passive_s) {//Novo cliente
+                        printf("New Client. \n");
                         int new_s = newClient(&sin);
                         FD_SET(new_s, &rfds_bkp);
                     } else //Dados chegando
